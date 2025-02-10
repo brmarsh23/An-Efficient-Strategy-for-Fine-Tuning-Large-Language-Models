@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jupyter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: jupyter
+      project: fine_tuning
+  template:
+    metadata:
+      labels:
+        app: jupyter
+        project: fine_tuning
+    spec:
+      initContainers:
+      - name: copy-src
+        image: busybox:1.28
+        volumeMounts:
+        - name: src
+          mountPath: /tmp/src
+        - name: static-source
+          mountPath: /tmp/static-source
+        command:
+        - /bin/sh
+        - -c
+        - cp /tmp/static-source/* /tmp/src/. 
+
+      containers:
+      - name: jupyter
+        image: jupyter/minimal-notebook:python-3.10
+        resources:
+          limits:
+            cpu: 500m
+            memory: 1Gi
+        ports:
+        - containerPort: 8888
+          name: jupyterport
+        volumeMounts: 
+        - name: src
+          mountPath: /home/jovyan/src
+        - name: models
+          mountPath: /home/jovyan/model
+        - name: data
+          mountPath: /home/jovyan/data
+        - name: output
+          mountPath: /home/jovyan/output
+        - name: jupyter-config
+          mountPath: /home/jovyan/.jupyter/jupyter_notebook_config.py
+          subPath: jupyter_notebook_config.py
+
+      volumes: 
+      - name: src
+        persistentVolumeClaim:
+          claimName: src-nfs-pvc
+      - name: models
+        persistentVolumeClaim:
+          claimName: model-nfs-pvc
+      - name: static-source
+        configMap:
+          name: static-source
+      - name: jupyter-config
+        configMap:
+          name: jupyter-config
+      - name: data
+        persistentVolumeClaim:
+          claimName: data-pvc
+      - name: output
+        persistentVolumeClaim:
+          claimName: output-pvc

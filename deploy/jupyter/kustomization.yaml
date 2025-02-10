@@ -1,0 +1,23 @@
+namespace: sweep
+resources:
+- model-pvc-nfs.yaml
+- src-nfs.yaml
+- deploy.yaml
+- svc.yaml
+- nodeport.yaml
+- data-pvc.yaml
+- output-pvc.yaml
+
+generatorOptions:
+  disableNameSuffixHash: true
+configMapGenerator:
+  - name: static-source
+    files:
+    - train_t5.py
+    - trainT5_LoRA.py
+    - trainT5_QLoRA.py
+  
+  - name: jupyter-config
+    files:
+    - jupyter_notebook_config.py
+    
