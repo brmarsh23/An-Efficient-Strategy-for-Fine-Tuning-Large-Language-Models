@@ -1,0 +1,5 @@
+temp
+venv
+__pycache__
+*.pem
+*.tgz
