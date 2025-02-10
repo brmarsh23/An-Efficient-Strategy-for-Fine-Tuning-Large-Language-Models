@@ -1,0 +1,14 @@
+namespace: sweep
+resources:
+- train-rayjob.yaml
+- service-lb.yaml
+- nodeport.yaml
+
+# generatorOptions:
+#   disableNameSuffixHash: true
+# configMapGenerator:
+# - name: train
+#   files:
+#   - train_t5.py
+#   - trainT5_LoRA.py
+#   - trainT5_QLoRA.py

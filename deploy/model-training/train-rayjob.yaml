@@ -1,0 +1,141 @@
+apiVersion: ray.io/v1
+kind: RayJob
+metadata:
+  name: llm-train
+spec:
+  #entrypoint: python /home/ray/src/mctssagpt/deploy/manifest/overlay/tenzingprod/model-training//train_t5.py //main entry point
+  #entrypoint: python /home/ray/src/mctssagpt/deploy/manifest/overlay/tenzingprod/model-training/trainT5_LoRA.py //main entry point
+  entrypoint: python /home/ray/src/mctssagpt/deploy/manifest/overlay/tenzingprod/model-training/trainT5_QLoRA.py //main entry point
+  runtimeEnvYAML: |
+    pip:
+    - accelerate
+    - evaluate
+    - datasets
+    - transformers
+    - pandas 
+    - sentencepiece
+    - torch 
+    - torchvision
+    - torchaudio
+    - numpy
+    - peft
+    - bitsandbytes
+    env_vars:
+      # Change the proxy settings to match your environment
+      http_proxy: "" 
+      https_proxy: ""
+      no_proxy: ""
+
+  rayClusterSpec:
+    rayVersion: 2.34.0-gpu
+    headGroupSpec:
+      rayStartParams:
+        dashboard-host: '0.0.0.0'
+      template:
+        spec:
+          containers:
+          - name: ray-head
+            image: rayproject/ray:2.34.0-gpu
+            # imagePullPolicy: Always
+            ports:
+            - containerPort: 6379
+              name: gcs-server
+            - containerPort: 8265
+              name: dashboard
+            - containerPort: 10001
+              name: client
+            resources:
+              limits:
+                cpu: "15"
+                # nvidia.com/gpu: 1
+              requests:
+                cpu: "15"
+                # nvidia.com/gpu: 1
+
+            volumeMounts:
+            - mountPath: /home/ray/src
+              name: src
+            - mountPath: /home/ray/models
+              name: models
+            - mountPath: /home/ray/data
+              name: data
+            - mountPath: /home/ray/output
+              name: output
+            env: # Change the proxy settings to match your environment
+            - name: http_proxy
+              value: ""
+            - name: https_proxy
+              value: ""
+            - name: no_proxy
+              value: ""
+
+          volumes:
+          - name: src
+            persistentVolumeClaim:
+              claimName: src-nfs-pvc
+          - name: models
+            persistentVolumeClaim:
+              claimName: model-nfs-pvc
+          - name: data
+            persistentVolumeClaim:
+              claimName: data-pvc
+          - name: output
+            persistentVolumeClaim:
+              claimName: output-pvc
+
+    workerGroupSpecs:
+    - replicas: 1
+      minReplicas: 1
+      maxReplicas: 6
+      groupName: tenzing-gpu
+      rayStartParams: {}
+      template:
+        spec:
+          containers:
+          - name: ray-worker
+            image: rayproject/ray:2.34.0-gpu
+            # imagePullPolicy: Always
+
+            lifecycle:
+              preStop:
+                exec:
+                  command: 
+                  - /bin/sh
+                  - -c
+                  - "ray stop"
+            resources:
+              limits:
+                cpu: "24"
+                nvidia.com/gpu: 4
+              requests:
+                cpu: "24"
+                nvidia.com/gpu: 4
+            volumeMounts:
+            - mountPath: /home/ray/src
+              name: src
+            - mountPath: /home/ray/models
+              name: models
+            - mountPath: /home/ray/data
+              name: data
+            - mountPath: /home/ray/output
+              name: output
+            env: # Change the settings to match your environment
+            - name: http_proxy
+              value: ""
+            - name: https_proxy
+              value: ""
+            - name: no_proxy
+              value: ""
+          volumes:
+          - name: src
+            persistentVolumeClaim:
+              claimName: src-nfs-pvc
+          - name: models
+            persistentVolumeClaim:
+              claimName: model-nfs-pvc
+          - name: data
+            configMap:
+              name: data-pvc
+          - name: output
+            configMap:
+              name: output-pvc
