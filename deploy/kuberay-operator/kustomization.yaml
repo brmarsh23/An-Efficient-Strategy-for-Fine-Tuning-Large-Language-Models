@@ -1,0 +1,14 @@
+resources:
+- deployment.yaml
+- leader_election_role_binding.yaml
+- leader_election_role.yaml
+- multiple_namespaces_role.yaml
+- multiple_namespaces_rolebinding.yaml
+- ray_rayjob_editor_role.yaml
+- ray_rayjob_viewer_role.yaml
+- ray_rayservice_editor_role.yaml
+- ray_rayservice_viewer_role.yaml
+- role.yaml
+- rolebinding.yaml
+- service.yaml
+- serviceaccount.yaml
